@@ -297,11 +297,11 @@ When R5 or R6 fires, the resulting `Logging.recorded` event must include an `out
 - Modify `train.py`. Everything in it is fair game: model architecture, optimizer, hyperparameters, training loop, batch size, model size.
 
 **What you CANNOT do:**
-- Modify `prepare.py`. It contains the fixed evaluation, data loading, tokenizer, and training constants (5-minute time budget, sequence length, etc.).
+- Modify `prepare.py`. It contains the fixed evaluation, data loading, tokenizer, and training constants (30-second prototype time budget; upstream uses 5 minutes, sequence length, etc.).
 - Install new packages. Use only what's in `pyproject.toml`.
 - Modify the evaluation harness. `evaluate_bpb` in `prepare.py` is the ground truth.
 
-**Goal: lowest val_bpb.** Time budget is fixed at 5 minutes; you optimize for what fits in those 5 minutes.
+**Goal: lowest val_bpb.** Time budget is fixed at 30 seconds (prototype); you optimize for what fits in that budget.
 
 **VRAM** is a soft constraint. Some increase is acceptable for meaningful gains, but it should not blow up dramatically.
 
@@ -332,7 +332,7 @@ You are the reaction interpreter. At each step:
 A few operational notes the reactions don't capture:
 
 - **Trivial crashes.** If R7's conditions fire and the cause is a typo or import bug, fix it and re-run as the *same* experiment id (don't waste an id on it). If the idea is fundamentally broken, accept the crash, let R7 run, move on.
-- **Timeouts.** Each run should take ~5 minutes total. If a run exceeds 10 minutes, kill it and emit `Evaluating.measured` with `status: "crashed"` and `crash_excerpt: "exceeded 10-minute timeout"`.
+- **Timeouts.** Training stops after **30 seconds** of measured loop time (`TIME_BUDGET` in `prepare.py`); expect a short wall-clock window including startup and final eval. If a run still exceeds ~5 minutes (hang or pathological slowdown), kill it and emit `Evaluating.measured` with `status: "crashed"` and `crash_excerpt: "exceeded 5-minute wall-clock timeout"`.
 - **Stuckness.** If you can't think of a hypothesis, **read further back in `events.jsonl`**. Look at hypotheses predicted to work but didn't (mechanism was wrong — what's the right mechanism?), at hypotheses confirmed but only partially exploited, at discarded changes that might combine well with what's now baseline. Re-read the in-scope files for assumptions you've been treating as fixed when they aren't. The structured log makes stuckness diagnosable — use it.
 
 ---
@@ -341,4 +341,4 @@ A few operational notes the reactions don't capture:
 
 Once the loop has begun, do NOT pause to ask whether to continue. Do NOT ask "should I keep going?" or "is this a good stopping point?" You are autonomous. The human may be asleep or away — they expect you to keep working until manually interrupted.
 
-A user might leave you running while they sleep. At ~5 minutes per experiment that's about 12/hour, ~100 across an average night. The user wakes up to: an `events.jsonl` whose every event traces to its causes, a branch whose every commit is accounted for, and a UI (built separately) that turns both into a legible picture of what was tried, what was predicted, what happened, and what was learned. That is the deliverable.
+A user might leave you running while they sleep. With a 30-second training budget you get many more iterations per hour than with a full 5-minute run (counts depend on overhead and machine). The user wakes up to: an `events.jsonl` whose every event traces to its causes, a branch whose every commit is accounted for, and a UI (built separately) that turns both into a legible picture of what was tried, what was predicted, what happened, and what was learned. That is the deliverable.
