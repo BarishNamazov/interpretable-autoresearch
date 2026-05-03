@@ -21,6 +21,17 @@ Three failures identified by MIT CSAIL:
 
 > Source: MIT CSAIL Alliances — [*"Agentic AI: What you need to know about AI agents"*](https://cap.csail.mit.edu/agentic-ai-what-you-need-know-about-ai-agents)
 
+### Who this affects
+
+Concretely, the people shipping agents *today* are running into this:
+
+- **AI / ML researchers** leaving Karpathy-style autoresearch loops running overnight, waking up to a TSV of metrics and no defensible answer to "why did the agent try this?"
+- **Performance & platform engineers** delegating profile-and-optimize work to coding agents, then stuck reviewing 40 commits with no traceable reasoning behind any of them.
+- **Engineering teams** adopting coding agents in production codebases, where "the agent wrote this" is not an answer regulators, security reviewers, or future maintainers will accept.
+- **Compliance, safety, and governance owners** asked to sign off on autonomous systems whose behavior is specified inside prompts they can't read, version, or audit.
+
+The shared pain: when an autonomous agent does something surprising, nobody — not the operator, not the engineer, not the auditor — can replay *why*. That's the gap this project closes.
+
 ---
 
 ## Research foundation
@@ -71,9 +82,9 @@ Acting.acted(action: Reviewing.completed, by: <agent>, args: { artifact: ?artifa
 
 ---
 
-## What's in this repo
+## What works today
 
-This repository contains two concrete instantiations of the behavioral-code pattern, each a self-contained autoresearch loop where an LLM agent drives experimentation under a `program.md` written in the concept/reaction DSL. Each subdirectory is independently runnable; they share no code, only the underlying pattern.
+This isn't a slide deck. The repo ships **two end-to-end runnable autoresearch loops** driven by Claude (or any coding agent) operating against a behavioral-code `program.md`. Both produce a real, append-only `events.jsonl` you can inspect, replay, and audit.
 
 ```
 interpretable-autoresearch/
@@ -81,7 +92,12 @@ interpretable-autoresearch/
 └── performance-engineering/  # autoresearch loop over a C++ N-body simulator
 ```
 
-Both loops emit an append-only `events.jsonl` whose every line is a typed, causally-linked event. A separate UI (out of scope for this repo) consumes that log to render the metric trajectory and the reaction chain that produced it.
+What you can verify yourself:
+
+- Each loop is bootable in under five minutes (`uv sync` / `make`) and runs an actual baseline experiment on commodity hardware (Apple Silicon Mac or single NVIDIA GPU).
+- Each loop emits a typed event per action — `Hypothesizing.formed`, `Modifying.applied`, `Experimenting.run`, `Evaluating.measured`, `Logging.recorded` — with a `caused_by` chain. Open `events.jsonl` and read straight down: every line tells you who did it, what they did, and which earlier event triggered it.
+- Each hypothesis records its prediction (`direction`, `magnitude`, `mechanism`, `side_effects`) **before** the experiment runs. Each `Logging.recorded` records `outcome_vs_prediction` **after**. The log is therefore not retrofittable — you cannot quietly rewrite history to look smarter than you were.
+- Every keep/revert is a real `git commit` / `git reset --hard HEAD~1` against a branch named `autoresearch/<tag>`. The git history matches the event log.
 
 ### `model-training/` — Karpathy-style LLM autoresearch
 
@@ -109,7 +125,7 @@ uv run train.py          # one manual baseline experiment, ~30 s + startup/eval
 
 Then point a coding agent (Claude / Codex / etc.) at `program.md` and let it run autonomously. See `model-training/README.md` for full details.
 
-**The behavioral-code delta.** The agent is not running a free-form "edit, train, log to TSV" loop. It is a reaction interpreter: at each step it tails `events.jsonl`, matches a `when` clause, and fires the corresponding `then`. Every hypothesis carries an explicit prediction (direction, magnitude, mechanism, side effects); every `Logging.recorded` event carries `outcome_vs_prediction`. The log is a record of *learning*, not just of metrics.
+**Why the behavioral-code version is better than "agent + TSV".** The agent is not running a free-form "edit, train, log to TSV" loop. It is a reaction interpreter: at each step it tails `events.jsonl`, matches a `when` clause, and fires the corresponding `then`. Every hypothesis carries an explicit prediction; every `Logging.recorded` event carries `outcome_vs_prediction`. The log is a record of *learning*, not just of metrics — and that's exactly what a researcher needs at 8 a.m. when they want to know what the agent figured out overnight.
 
 ### `performance-engineering/` — autoresearch over a C++ codebase
 
@@ -136,16 +152,16 @@ python bench_e2e.py --runs 5                 # establish a baseline + noise floo
 
 Then point an agent at `program.md`. The agent's first reaction (R0) is `Discovering.discover` — it walks `src/`, reads the README, decides whether to use `bench_e2e.py` or write its own harness, and records its codebase map, hot-path hypothesis, and noise floor as a single `Discovering.completed` event. Everything after that cites back to it.
 
-**The behavioral-code delta.** Performance work is harder to make interpretable than model training: the bottleneck is unknown, the benchmark may not exist, and finding the *right thing to change* is most of the work. The reactions enforce two disciplines that orthodox "agent + TSV" loops skip:
+**Why the behavioral-code version is better than "agent + TSV".** Performance work is harder to make interpretable than model training: the bottleneck is unknown, the benchmark may not exist, and finding the *right thing to change* is most of the work. The reactions enforce two disciplines that orthodox loops skip:
 - **Profile-grounded hypotheses.** `Hypothesizing.formed` must cite a recent `Profiling.profiled` event and a specific function attribution. No guessing at hot paths.
-- **Noise-aware keeps.** `Evaluating.measured` carries a `significance` flag against the noise floor recorded at discovery. A speedup within run-to-run variance is `below_noise_floor` and gets reverted, not kept.
+- **Noise-aware keeps.** `Evaluating.measured` carries a `significance` flag against the noise floor recorded at discovery. A speedup within run-to-run variance is `below_noise_floor` and gets reverted, not kept. (This is the kind of mistake an unsupervised agent will *otherwise* make and accidentally "win" with.)
 
 ---
 
-## Use cases
+## Use cases — what a real user gets out of this
 
 ### 1. Karpathy Autoresearch (this repo, `model-training/`)
-Agents autonomously run literature reviews, training experiments, extract claims, check sources, and synthesize findings. With behavioral code, every research step — read, extract, modify, train, evaluate, keep-or-revert — is a traceable, human-auditable reaction. Researchers can inspect exactly what the agent did and why, and override any step.
+A researcher leaves an agent running overnight. By morning they have: a branch of attempted experiments, an `events.jsonl` whose every line is a typed event with a `caused_by` cause, and — crucially — a record of which hypotheses *predicted* what and how reality answered. Stuck on a result? Open the log, find the `Hypothesizing.formed` event, read the `prediction.mechanism` field, find the matching `Logging.recorded.outcome_vs_prediction`, see exactly where the agent's mental model diverged from reality.
 
 **Example reaction chain (from `model-training/`):**
 ```
@@ -157,7 +173,38 @@ Experimenting.kept | Experimenting.discarded → Logging.recorded(outcome_vs_pre
 Each arrow is a separate, readable reaction. Each can be inspected, paused, or overridden by the human, and each event is one line in `events.jsonl` whose `caused_by` points at its trigger.
 
 ### 2. Software performance optimization (this repo, `performance-engineering/`)
-Agents profile, identify bottlenecks, and apply optimizations. Behavioral code makes the agent's reasoning readable: each optimization decision maps to a declared reaction that a developer can review, approve, or reject — human in the loop by design, not by accident. The `Discovering` and `Profiling` concepts force the agent to *justify* every change against measured cost attribution, not against a guess.
+A platform engineer hands the agent a slow service and a benchmark. Behavioral code makes the agent's reasoning readable: each optimization decision maps to a declared reaction the engineer can review, approve, or reject. The `Discovering` and `Profiling` concepts force the agent to *justify* every change against measured cost attribution — there's no "I felt like rewriting this with SIMD" because the rule says hypotheses cite a recent profile or they don't fire.
+
+---
+
+## Putting humans in control
+
+The whole design point is that humans stay in charge by editing **legible code**, not by guarding a black box.
+
+- **You program the agent in Markdown.** `program.md` is the agent's behavior. Want different behavior? Edit it. No fine-tuning, no prompt-spelunking, no custom harness. The behavioral code is yours, versioned in your git repo, reviewable in PR.
+- **The human is a first-class event.** The `Communicating` concept means "the user told the agent X" is recorded as `Communicating.received`, with subsequent reactions citing that event in `caused_by`. Off-record nudges don't exist; if you steered the agent, the log shows it.
+- **Pause, override, or revert at any line.** Every modification is a real git commit, every revert is a real `git reset --hard HEAD~1`, every event has an `event_id`. You can stop the loop, edit `program.md`, and resume — the next reaction tail-reads `events.jsonl` and continues.
+- **Predictions can't be retroactively edited.** Because `Hypothesizing.formed` is appended *before* the experiment runs, the agent can't quietly rewrite its own predictions to match the outcome. The log is a tamper-evident learning record, not a sanitized PR description.
+- **The autonomy is bounded by the program.** Reactions only fire when their `when`/`where` conditions match. The agent has no ambient action — it cannot do something that isn't reachable from a reaction in `program.md`. Restricting agent capability is a code edit, not a prompt patch.
+
+This is empowerment, not replacement: the researcher still owns the research questions, the engineer still owns the design choices, the agent does the legible labor of trying things and writing down why.
+
+---
+
+## Risks we took seriously
+
+We are not claiming this solves agent safety. We are claiming it makes a specific class of agent failures **catchable** instead of invisible. Here is what we wrestled with:
+
+- **Risk: agents lying in the log.** An agent could fabricate a `Hypothesizing.formed.reasoning` field after the fact to match a result that worked.
+  *What the design does about it:* events are append-only and timestamped; predictions are required *before* the run; `outcome_vs_prediction` requires the agent to explicitly compare. A retrofitted prediction is detectable in the timestamp ordering and in the `caused_by` chain. Combined with git commit timestamps, the log is replayable evidence.
+- **Risk: scope creep / agent touching the wrong files.** A coding agent given shell access can modify anything on disk.
+  *What the design does about it:* `Modifying.applied` declares its target file (`to: train.py` for model-training, scoped to `src/` for performance-engineering). The reaction `R3` won't fire on out-of-scope edits, and any out-of-scope change shows up as an unattributed git diff with no `Modifying.applied` event — i.e. the inconsistency is visible to a human reader.
+- **Risk: over-trust.** A researcher reads only the metric column of the log and assumes the agent figured something out, when really it stumbled into a noise-floor win or a cache-effect speedup it doesn't understand.
+  *What the design does about it:* the `outcome_vs_prediction` field is mandatory and explicitly invites disagreement ("metric matched but mechanism unclear: speedup may have come from cache effects, not the change I proposed"). The performance loop additionally enforces a `significance` flag against a recorded noise floor — sub-noise wins are *required* to be discarded, not kept.
+- **Risk: deskilling and displacement.** If agents do all the experimentation, junior researchers and engineers lose the practice that builds expertise.
+  *What we believe:* this design is closer to a teaching artifact than a black-box assistant. The `events.jsonl` is exactly the kind of structured lab notebook a junior researcher *should* keep — predictions before outcomes, mechanisms named explicitly, mistakes acknowledged in writing. Reading an agent's log is itself instructive in a way that reading a TSV of metrics is not.
+- **Risk: false sense of governance.** "We have an audit log" is not the same as "we have safety."
+  *What we are honest about:* the log catches *behavioral* divergence (the agent did something that doesn't trace back to a reaction; the prediction was wrong; the mechanism was wrong). It does **not** prevent prompt-injection, model-level deception, or scenarios where the agent is sandbagging in plausible-looking events. Those require complementary work (sandboxing, capability restriction, alignment evaluations) that this project does not claim to do. What we offer is a structural property that other safety work can build on, not a substitute for it.
 
 ---
 
