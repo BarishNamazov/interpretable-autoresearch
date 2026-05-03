@@ -18,12 +18,16 @@ struct Body {
     double mass;
 };
 
+struct Accel {
+    double x, y, z;
+};
+
 static const double G = 1.0;
 static const double SOFTENING = 1e-3;
 
 static void step(std::vector<Body>& bodies, double dt) {
     int n = (int)bodies.size();
-    std::vector<double> ax(n, 0.0), ay(n, 0.0), az(n, 0.0);
+    std::vector<Accel> acc(n, {0.0, 0.0, 0.0});
 
     for (int i = 0; i < n; i++) {
         for (int j = i + 1; j < n; j++) {
@@ -35,19 +39,19 @@ static void step(std::vector<Body>& bodies, double dt) {
             double f = G / (r2 * r);
             double fi = f * bodies[j].mass;
             double fj = f * bodies[i].mass;
-            ax[i] += fi * dx;
-            ay[i] += fi * dy;
-            az[i] += fi * dz;
-            ax[j] -= fj * dx;
-            ay[j] -= fj * dy;
-            az[j] -= fj * dz;
+            acc[i].x += fi * dx;
+            acc[i].y += fi * dy;
+            acc[i].z += fi * dz;
+            acc[j].x -= fj * dx;
+            acc[j].y -= fj * dy;
+            acc[j].z -= fj * dz;
         }
     }
 
     for (int i = 0; i < n; i++) {
-        bodies[i].vx += ax[i] * dt;
-        bodies[i].vy += ay[i] * dt;
-        bodies[i].vz += az[i] * dt;
+        bodies[i].vx += acc[i].x * dt;
+        bodies[i].vy += acc[i].y * dt;
+        bodies[i].vz += acc[i].z * dt;
         bodies[i].x  += bodies[i].vx * dt;
         bodies[i].y  += bodies[i].vy * dt;
         bodies[i].z  += bodies[i].vz * dt;
