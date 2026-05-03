@@ -1,0 +1,4 @@
+nbody
+*.o
+*.bin
+run.log
