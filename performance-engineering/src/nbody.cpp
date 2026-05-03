@@ -26,33 +26,35 @@ static const double SOFTENING = 1e-3;
 
 static void step(std::vector<Body>& bodies, double dt) {
     int n = (int)bodies.size();
-    std::vector<Accel> acc(n, {0.0, 0.0, 0.0});
     double mass = n > 0 ? 1.0 / n : 0.0;
+    const double soft2 = SOFTENING * SOFTENING;
+    Body* __restrict__ b = bodies.data();
 
+    #pragma omp parallel for schedule(static)
     for (int i = 0; i < n; i++) {
-        for (int j = i + 1; j < n; j++) {
-            double dx = bodies[j].x - bodies[i].x;
-            double dy = bodies[j].y - bodies[i].y;
-            double dz = bodies[j].z - bodies[i].z;
-            double r2 = dx*dx + dy*dy + dz*dz + SOFTENING*SOFTENING;
-            double r = std::sqrt(r2);
-            double f = G * mass / (r2 * r);
-            acc[i].x += f * dx;
-            acc[i].y += f * dy;
-            acc[i].z += f * dz;
-            acc[j].x -= f * dx;
-            acc[j].y -= f * dy;
-            acc[j].z -= f * dz;
+        double xi = b[i].x, yi = b[i].y, zi = b[i].z;
+        double ax = 0.0, ay = 0.0, az = 0.0;
+        for (int j = 0; j < n; j++) {
+            double dx = b[j].x - xi;
+            double dy = b[j].y - yi;
+            double dz = b[j].z - zi;
+            double r2 = dx*dx + dy*dy + dz*dz + soft2;
+            double r  = std::sqrt(r2);
+            double f  = G * mass / (r2 * r);
+            ax += f * dx;
+            ay += f * dy;
+            az += f * dz;
         }
+        b[i].vx += ax * dt;
+        b[i].vy += ay * dt;
+        b[i].vz += az * dt;
     }
 
+    #pragma omp parallel for schedule(static)
     for (int i = 0; i < n; i++) {
-        bodies[i].vx += acc[i].x * dt;
-        bodies[i].vy += acc[i].y * dt;
-        bodies[i].vz += acc[i].z * dt;
-        bodies[i].x  += bodies[i].vx * dt;
-        bodies[i].y  += bodies[i].vy * dt;
-        bodies[i].z  += bodies[i].vz * dt;
+        b[i].x += b[i].vx * dt;
+        b[i].y += b[i].vy * dt;
+        b[i].z += b[i].vz * dt;
     }
 }
 
