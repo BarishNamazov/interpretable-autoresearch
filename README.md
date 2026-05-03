@@ -10,6 +10,9 @@
 
 **Live Deployment**: https://interpretable-autoresearch.pages.dev/
 
+https://github.com/user-attachments/assets/8ac7b13f-bd85-4d9a-bd14-31912feb228a
+
+
 ---
 
 ## The problem
