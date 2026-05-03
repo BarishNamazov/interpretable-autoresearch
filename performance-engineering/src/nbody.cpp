@@ -26,17 +26,21 @@ static void step(std::vector<Body>& bodies, double dt) {
     std::vector<double> ax(n, 0.0), ay(n, 0.0), az(n, 0.0);
 
     for (int i = 0; i < n; i++) {
-        for (int j = 0; j < n; j++) {
-            if (i == j) continue;
+        for (int j = i + 1; j < n; j++) {
             double dx = bodies[j].x - bodies[i].x;
             double dy = bodies[j].y - bodies[i].y;
             double dz = bodies[j].z - bodies[i].z;
             double r2 = dx*dx + dy*dy + dz*dz + SOFTENING*SOFTENING;
             double r = std::sqrt(r2);
-            double f = G * bodies[j].mass / (r2 * r);
-            ax[i] += f * dx;
-            ay[i] += f * dy;
-            az[i] += f * dz;
+            double f = G / (r2 * r);
+            double fi = f * bodies[j].mass;
+            double fj = f * bodies[i].mass;
+            ax[i] += fi * dx;
+            ay[i] += fi * dy;
+            az[i] += fi * dz;
+            ax[j] -= fj * dx;
+            ay[j] -= fj * dy;
+            az[j] -= fj * dz;
         }
     }
 
