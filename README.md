@@ -1,6 +1,6 @@
 # Interpretable Autoresearch
 
-*Built for **Claude @ MIT Hackathon**.*
+🥈 **2nd Place — Claude @ MIT Spring 2026 Hackathon**
 
 > **"Agents whose behavior you can read, verify, and trust."**
 
