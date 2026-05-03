@@ -28,6 +28,7 @@ static const double SOFTENING = 1e-3;
 static void step(std::vector<Body>& bodies, double dt) {
     int n = (int)bodies.size();
     std::vector<Accel> acc(n, {0.0, 0.0, 0.0});
+    double mass = n > 0 ? bodies[0].mass : 0.0;
 
     for (int i = 0; i < n; i++) {
         for (int j = i + 1; j < n; j++) {
@@ -36,15 +37,13 @@ static void step(std::vector<Body>& bodies, double dt) {
             double dz = bodies[j].z - bodies[i].z;
             double r2 = dx*dx + dy*dy + dz*dz + SOFTENING*SOFTENING;
             double r = std::sqrt(r2);
-            double f = G / (r2 * r);
-            double fi = f * bodies[j].mass;
-            double fj = f * bodies[i].mass;
-            acc[i].x += fi * dx;
-            acc[i].y += fi * dy;
-            acc[i].z += fi * dz;
-            acc[j].x -= fj * dx;
-            acc[j].y -= fj * dy;
-            acc[j].z -= fj * dz;
+            double f = G * mass / (r2 * r);
+            acc[i].x += f * dx;
+            acc[i].y += f * dy;
+            acc[i].z += f * dz;
+            acc[j].x -= f * dx;
+            acc[j].y -= f * dy;
+            acc[j].z -= f * dz;
         }
     }
 
