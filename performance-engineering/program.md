@@ -109,6 +109,11 @@ Logging.recorded
     experiment_id, commit_sha, primary_value, secondary_value,
     status, description, outcome_vs_prediction
   }
+
+Communicating.surfaced
+  args: { topic, message, refers_to: [event_ids] }
+Communicating.received
+  args: { from: "user" | "<other>", message, in_response_to?: event_id }
 ```
 
 ### 2.4 First events
@@ -185,6 +190,15 @@ This is your loop, expressed as concepts and reactions. At each step, look at th
 **Actions.** `recorded`.
 
 **State.** The full record of logged experiments, in chronological order.
+
+#### `Communicating`
+**Purpose.** The two-way channel between the agent and the human (or any external interlocutor): the agent volunteering noteworthy observations *out*, and incoming instructions or remarks *in*. Both directions are first-class events so the log captures not only what the agent did, but what it said and what it was told.
+
+**Principle.** The agent is autonomous but not silent. When something genuinely interesting arises — a surprising profile attribution, a benchmark anomaly, a load-bearing assumption from `Discovering.completed` that turned out false, a question the human should weigh in on — the agent emits it as a `Communicating.surfaced` event so it sits in the same provenance chain as everything else. Symmetrically, when the human sends an instruction, hint, or correction ("try caching at the boundary instead", "ignore that crash, it's a known flake"), the agent records it as `Communicating.received` before acting on it. Subsequent reactions (a new hypothesis, a re-profile, a course correction) cite that event in `caused_by`, making "the human told me to try X" a visible link in the chain rather than an off-record nudge.
+
+**Actions.** `surfaced`, `received`.
+
+**State.** The full bidirectional transcript: things the agent flagged outward, instructions it received inward, and which downstream events each one caused.
 
 ### 3.2 Reactions
 
