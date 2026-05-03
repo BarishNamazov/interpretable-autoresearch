@@ -138,7 +138,7 @@ export interface Profile {
   informedHypotheses: string[];
 }
 
-// Discovery data (perf-eng only)
+// Discovery data
 export interface ModuleSummary {
   path: string;
   summary: string;

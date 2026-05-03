@@ -7,7 +7,8 @@ import {
   buildMetricSeries,
   buildCommunications,
   buildModifications,
-  computeStats
+  computeStats,
+  extractDiscovery
 } from "./shared.ts";
 
 export function interpretModelTraining(rawEvents: RawEvent[]): Run {
@@ -20,6 +21,7 @@ export function interpretModelTraining(rawEvents: RawEvent[]): Run {
   const metricSeries = buildMetricSeries(experiments, "lower_better");
   const communications = buildCommunications(events);
   const modifications = buildModifications(events);
+  const discovery = extractDiscovery(events);
   
   const stats = computeStats(experiments, "lower_better");
   stats.totalEvents = events.length;
@@ -38,6 +40,7 @@ export function interpretModelTraining(rawEvents: RawEvent[]): Run {
     metricSeries,
     communications,
     modifications,
+    discovery,
     stats
   };
 }

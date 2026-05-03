@@ -25,7 +25,7 @@ The UI follows a strict **DSL + Interpreter + Handler** pattern that cleanly sep
 
 ```
 ui/
-├── server.ts              # Bun.serve entry — serves HTML and /api/runs
+├── server.ts              # Bun.serve entry — serves HTML, /runs.json, and /api/runs
 ├── index.html             # Main HTML with Google Fonts
 ├── src/
 │   ├── main.ts            # Client entrypoint
@@ -142,6 +142,7 @@ bun run build      # Bundle client for production
 ## API Endpoints
 
 - `GET /` — Serves the main HTML
+- `GET /runs.json` — Returns both domains' events.jsonl and program.md, matching the static build asset
 - `GET /api/runs` — Returns both domains' events.jsonl and program.md
 - `GET /api/runs/:domain` — Returns a single domain's data
 

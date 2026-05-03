@@ -1,10 +1,8 @@
 import type { 
   RawEvent, 
   Run, 
-  Discovery, 
   Profile,
-  HotAttribution,
-  ModuleSummary
+  HotAttribution
 } from "../types.ts";
 import { 
   buildEventNodes, 
@@ -14,48 +12,9 @@ import {
   buildMetricSeries,
   buildCommunications,
   buildModifications,
-  computeStats
+  computeStats,
+  extractDiscovery
 } from "./shared.ts";
-
-function extractDiscovery(events: { action: string; args: Record<string, unknown>; id: string }[]): Discovery | undefined {
-  const discoveryEvent = events.find(e => e.action === "Discovering.completed");
-  if (!discoveryEvent) return undefined;
-  
-  const args = discoveryEvent.args;
-  const codebaseMap = args.codebase_map as { module_summaries?: Array<{ path: string; summary: string }> } | undefined;
-  const hotPathHyp = args.hot_path_hypothesis as { description?: string; reasoning?: string } | undefined;
-  const benchmark = args.benchmark as {
-    origin?: "found" | "wrote";
-    path?: string;
-    command?: string;
-    primary_metric?: { key: string; direction: "lower_better" | "higher_better" };
-    secondary_metrics?: string[];
-    noise_floor?: { primary_metric_value_runs?: number[]; spread_pct?: number };
-  } | undefined;
-  
-  return {
-    codebaseMap: {
-      moduleSummaries: (codebaseMap?.module_summaries || []) as ModuleSummary[]
-    },
-    hotPathHypothesis: {
-      description: hotPathHyp?.description || "",
-      reasoning: hotPathHyp?.reasoning || ""
-    },
-    benchmark: {
-      origin: benchmark?.origin || "found",
-      path: benchmark?.path || "",
-      command: benchmark?.command,
-      primaryMetric: benchmark?.primary_metric || { key: "unknown", direction: "lower_better" },
-      secondaryMetrics: benchmark?.secondary_metrics || [],
-      noiseFloor: {
-        primaryMetricValueRuns: benchmark?.noise_floor?.primary_metric_value_runs || [],
-        spreadPct: benchmark?.noise_floor?.spread_pct || 0
-      }
-    },
-    openQuestions: (args.open_questions as string[]) || [],
-    eventId: discoveryEvent.id
-  };
-}
 
 function extractProfiles(events: { action: string; args: Record<string, unknown>; id: string }[], hypotheses: { informedByProfile?: string; id: string }[]): Profile[] {
   const profiles: Profile[] = [];

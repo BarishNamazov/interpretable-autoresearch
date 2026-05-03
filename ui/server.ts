@@ -20,7 +20,7 @@ const server = Bun.serve({
     const url = new URL(req.url);
     
     // API routes
-    if (url.pathname === "/api/runs") {
+    if (url.pathname === "/api/runs" || url.pathname === "/runs.json") {
       try {
         const [modelTraining, performanceEngineering] = await Promise.all([
           loadDomainData("model-training"),

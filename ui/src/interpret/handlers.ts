@@ -31,7 +31,7 @@ export const domainHandlers: Record<Domain, DomainHandler> = {
     metricKey: "val_bpb",
     metricDirection: "lower_better",
     formatMetric: (v) => v.toFixed(6),
-    panels: ["stats", "metricChart", "provenance", "experiments", "hypotheses", "communications", "eventStream"],
+    panels: ["discovery", "stats", "metricChart", "provenance", "experiments", "hypotheses", "communications", "eventStream"],
     accentKept: "#d94f2b",
     accentDiscarded: "#6b8ca8",
     accentCrash: "#d4a017",
