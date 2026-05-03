@@ -33,7 +33,11 @@ export async function initApp(container: HTMLElement): Promise<void> {
   
   try {
     // Fetch data
-    const response = await fetch("/api/runs");
+    let response = await fetch("/api/runs");
+    if (!response.ok) {
+      // Static deployment fallback: pre-built runs.json next to index.html
+      response = await fetch("./runs.json");
+    }
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
     }
