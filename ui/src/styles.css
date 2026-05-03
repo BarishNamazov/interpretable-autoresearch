@@ -1065,12 +1065,16 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 0.75rem;
 }
 
+.event-row-wrapper {
+  border-bottom: 1px solid rgba(26, 26, 24, 0.05);
+}
+
 .event-row {
   display: grid;
-  grid-template-columns: 80px 200px 1fr;
+  grid-template-columns: 14px 64px 80px 200px 1fr 24px;
   gap: var(--space-sm);
+  align-items: baseline;
   padding: var(--space-xs) var(--space-sm);
-  border-bottom: 1px solid rgba(26, 26, 24, 0.05);
   cursor: pointer;
   transition: background var(--transition-fast);
 }
@@ -1079,8 +1083,23 @@ h1, h2, h3, h4, h5, h6 {
   background: rgba(26, 26, 24, 0.03);
 }
 
+.event-row--open {
+  background: rgba(26, 26, 24, 0.04);
+}
+
 .event-row--highlighted {
   background: rgba(217, 79, 43, 0.08);
+}
+
+.event-row__toggle {
+  color: var(--text-ink-faint);
+  font-size: 0.65rem;
+  user-select: none;
+}
+
+.event-row__time {
+  color: var(--text-ink-faint);
+  font-variant-numeric: tabular-nums;
 }
 
 .event-row__id {
@@ -1089,6 +1108,76 @@ h1, h2, h3, h4, h5, h6 {
 
 .event-row__action {
   font-weight: 500;
+}
+
+.event-row__provenance {
+  background: transparent;
+  border: none;
+  color: var(--text-ink-faint);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.85rem;
+  padding: 0;
+}
+
+.event-row__provenance:hover {
+  color: var(--text-ink);
+}
+
+.event-row__kv {
+  margin-right: 0.6em;
+}
+
+.event-row__k {
+  color: var(--text-ink-faint);
+}
+
+.event-row__text {
+  color: var(--text-ink-muted);
+  font-style: italic;
+}
+
+.event-row__details {
+  padding: var(--space-sm) var(--space-md) var(--space-md) calc(14px + 64px + 80px + var(--space-sm) * 4);
+  background: rgba(26, 26, 24, 0.02);
+  font-size: 0.7rem;
+}
+
+.event-row__meta {
+  display: grid;
+  gap: 2px;
+  margin-bottom: var(--space-sm);
+  color: var(--text-ink-muted);
+}
+
+.event-row__metalabel {
+  display: inline-block;
+  width: 80px;
+  color: var(--text-ink-faint);
+}
+
+.event-row__cause {
+  color: var(--accent-kept);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.event-row__cause:hover {
+  text-decoration: underline;
+}
+
+.event-row__args {
+  margin: 0;
+  padding: var(--space-sm);
+  background: var(--bg-paper);
+  border: 1px solid rgba(26, 26, 24, 0.08);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 300px;
+  overflow: auto;
 }
 
 .event-row__action--Hypothesizing { color: #7c3aed; }

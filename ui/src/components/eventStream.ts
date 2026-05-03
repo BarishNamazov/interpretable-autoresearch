@@ -91,40 +91,90 @@ export function renderEventStream(host: HTMLElement, run: Run): void {
 }
 
 function renderEventRow(evt: EventNode): HTMLElement {
+  const wrapper = document.createElement("div");
+  wrapper.className = "event-row-wrapper";
+
   const row = document.createElement("div");
   row.className = "event-row";
   row.dataset.eventId = evt.id;
-  
-  // Get summary from args
-  let summary = "";
-  const args = evt.args;
-  if (args.experiment_id) summary = args.experiment_id as string;
-  else if (args.hypothesis_id) summary = args.hypothesis_id as string;
-  else if (args.description) summary = (args.description as string).slice(0, 50);
-  else if (args.message) summary = (args.message as string).slice(0, 50);
-  else if (args.topic) summary = args.topic as string;
-  
+
+  const time = evt.ts.toISOString().slice(11, 19);
+  const preview = buildPreview(evt.args);
+
   row.innerHTML = `
+    <span class="event-row__toggle">▸</span>
+    <span class="event-row__time">${time}</span>
     <span class="event-row__id">${evt.id}</span>
     <span class="event-row__action event-row__action--${evt.concept}">${evt.action}</span>
-    <span class="event-row__summary">${escapeHtml(summary)}</span>
+    <span class="event-row__summary">${preview}</span>
+    <button class="event-row__provenance" title="Show in provenance timeline">↗</button>
   `;
-  
-  row.addEventListener("click", () => {
-    // Highlight this event in the provenance timeline
+
+  const details = document.createElement("div");
+  details.className = "event-row__details";
+  details.hidden = true;
+  details.innerHTML = renderDetails(evt);
+
+  const toggle = row.querySelector(".event-row__toggle") as HTMLElement;
+  row.addEventListener("click", (e) => {
+    if ((e.target as HTMLElement).classList.contains("event-row__provenance")) return;
+    const open = details.hidden === true;
+    details.hidden = !open;
+    toggle.textContent = open ? "▾" : "▸";
+    row.classList.toggle("event-row--open", open);
+  });
+
+  const provBtn = row.querySelector(".event-row__provenance") as HTMLElement;
+  provBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
     const provenanceEvent = document.querySelector(`[data-id="${evt.id}"]`);
     if (provenanceEvent) {
       provenanceEvent.scrollIntoView({ behavior: "smooth", block: "center" });
-      
-      // Add highlight effect
       document.querySelectorAll(".event-row--highlighted").forEach(el => {
         el.classList.remove("event-row--highlighted");
       });
       row.classList.add("event-row--highlighted");
     }
   });
-  
-  return row;
+
+  wrapper.appendChild(row);
+  wrapper.appendChild(details);
+  return wrapper;
+}
+
+function buildPreview(args: Record<string, unknown>): string {
+  const parts: string[] = [];
+  const keys = ["experiment_id", "hypothesis_id", "change_id", "profile_id", "request", "from", "topic"];
+  for (const k of keys) {
+    const v = args[k];
+    if (v == null || v === "") continue;
+    parts.push(`<span class="event-row__kv"><span class="event-row__k">${k}=</span>${escapeHtml(String(v))}</span>`);
+  }
+  const text = (args.description ?? args.message ?? args.summary ?? args.note) as string | undefined;
+  if (text) {
+    const t = String(text).replace(/\s+/g, " ").trim();
+    parts.push(`<span class="event-row__text">${escapeHtml(t.slice(0, 120))}${t.length > 120 ? "…" : ""}</span>`);
+  }
+  return parts.join(" ");
+}
+
+function renderDetails(evt: EventNode): string {
+  const argsJson = escapeHtml(JSON.stringify(evt.args, null, 2));
+  const caused = evt.causedBy.length
+    ? evt.causedBy.map(id => `<a class="event-row__cause" data-id="${id}">${id}</a>`).join(", ")
+    : "—";
+  const children = evt.children.length
+    ? evt.children.map(id => `<a class="event-row__cause" data-id="${id}">${id}</a>`).join(", ")
+    : "—";
+  return `
+    <div class="event-row__meta">
+      <div><span class="event-row__metalabel">ts</span> ${evt.ts.toISOString()}</div>
+      <div><span class="event-row__metalabel">concept</span> ${evt.concept} · ${evt.verb}</div>
+      <div><span class="event-row__metalabel">caused_by</span> ${caused}</div>
+      <div><span class="event-row__metalabel">children</span> ${children}</div>
+    </div>
+    <pre class="event-row__args">${argsJson}</pre>
+  `;
 }
 
 function escapeHtml(text: string): string {
