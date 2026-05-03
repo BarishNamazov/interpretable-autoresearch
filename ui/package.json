@@ -1,0 +1,15 @@
+{
+  "name": "autoresearch-ui",
+  "version": "1.0.0",
+  "description": "Interpretable AutoResearch event log visualization",
+  "scripts": {
+    "dev": "bun --hot server.ts",
+    "start": "bun server.ts",
+    "build": "bun build ./src/main.ts --outdir=dist --target=browser",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module",
+  "devDependencies": {
+    "bun-types": "^1.3.13"
+  }
+}
