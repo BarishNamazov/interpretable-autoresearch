@@ -15,7 +15,6 @@
 struct Body {
     double x, y, z;
     double vx, vy, vz;
-    double mass;
 };
 
 struct Accel {
@@ -28,7 +27,7 @@ static const double SOFTENING = 1e-3;
 static void step(std::vector<Body>& bodies, double dt) {
     int n = (int)bodies.size();
     std::vector<Accel> acc(n, {0.0, 0.0, 0.0});
-    double mass = n > 0 ? bodies[0].mass : 0.0;
+    double mass = n > 0 ? 1.0 / n : 0.0;
 
     for (int i = 0; i < n; i++) {
         for (int j = i + 1; j < n; j++) {
@@ -69,7 +68,6 @@ static void init_random(std::vector<Body>& bodies, int n, unsigned seed) {
         bodies[i].vx = vel(rng);
         bodies[i].vy = vel(rng);
         bodies[i].vz = vel(rng);
-        bodies[i].mass = 1.0 / n;
     }
 }
 
