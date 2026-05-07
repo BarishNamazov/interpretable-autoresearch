@@ -220,7 +220,6 @@ export interface DomainData {
   program: string;
 }
 
-export interface ApiResponse {
-  "model-training": DomainData;
-  "performance-engineering": DomainData;
-}
+// Keyed by domain id (e.g. "model-training"). The dict shape lets the
+// server add new domains without UI changes.
+export type ApiResponse = Record<string, DomainData>;

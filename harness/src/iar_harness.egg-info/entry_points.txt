@@ -1,2 +1,0 @@
-[console_scripts]
-iar = iar_harness.cli:main

@@ -32,10 +32,10 @@ if (!result.success) {
   process.exit(1);
 }
 
-await cp("./src/styles.css", `${OUT}/styles.css`);
+await cp("./src/styles/tokens.css", `${OUT}/styles.css`);
 
 const html = (await Bun.file("./index.html").text())
-  .replace('href="./src/styles.css"', 'href="./styles.css"')
+  .replace('href="./src/styles/tokens.css"', 'href="./styles.css"')
   .replace('src="./src/main.ts"', 'src="./main.js"');
 await Bun.write(`${OUT}/index.html`, html);
 

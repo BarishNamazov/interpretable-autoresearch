@@ -111,8 +111,16 @@ The repo ships **two end-to-end runnable autoresearch loops** driven by coding a
 
 ```
 interpretable-autoresearch/
+├── harness/                  # pi.dev harness — enforces program.md as a contract
+├── ui/                       # three-pane visualisation app
 ├── model-training/           # autoresearch loop over a small LLM training script
+│   ├── program.md
+│   ├── hooks.py              #   ← human-owned validators / grounders / observers
+│   └── events.jsonl
 └── performance-engineering/  # autoresearch loop over a C++ N-body simulator
+    ├── program.md
+    ├── hooks.py
+    └── events.jsonl
 ```
 
 What you can verify yourself:
@@ -121,6 +129,44 @@ What you can verify yourself:
 - Each loop emits a typed event per action — `Hypothesizing.formed`, `Modifying.applied`, `Experimenting.run`, `Evaluating.measured`, `Logging.recorded` — with a `caused_by` chain. Open `events.jsonl` and read straight down: every line tells you who did it, what they did, and which earlier event triggered it.
 - Each hypothesis records its prediction (`direction`, `magnitude`, `mechanism`, `side_effects`) **before** the experiment runs. Each `Logging.recorded` records `outcome_vs_prediction` **after**. The log is therefore not retrofittable — you cannot quietly rewrite history to look smarter than you were.
 - Every keep/revert is a real `git commit` / `git reset --hard HEAD~1` against a branch named `autoresearch/<tag>`. The git history matches the event log.
+
+### Run the harness
+
+The harness is a Python package (`iar-harness`) plus a thin pi.dev extension. The agent only sees four tools — `tail_events`, `next_reactions`, `request`, `attest` — so it cannot freely write to `events.jsonl`. Every event passes through the `hooks.py` you control.
+
+```bash
+# Install
+cd harness && pip install -e . && cd ..
+
+# Validate the committed event log against your program.md + hooks.py
+cd model-training && iar validate --program program.md --events events.jsonl --hooks hooks.py
+# → validated 61 events: 0 errors, 0 warnings
+
+cd ../performance-engineering && iar validate --program program.md --events events.jsonl --hooks hooks.py
+# → validated 194 events: 0 errors, 4 warnings  (significance ↔ noise-floor mismatches surfaced for review)
+
+# Replay all hooks dry-run:
+iar replay --program program.md --events events.jsonl --hooks hooks.py
+
+# Show what the agent is *currently allowed to do* given the log tail:
+iar next   --program program.md --events events.jsonl --hooks hooks.py
+
+# Run the live loop driven by pi.dev (requires Node + pi):
+iar run    --program program.md --events events.jsonl --hooks hooks.py
+```
+
+See [`harness/README.md`](./harness/README.md) for the full hook API (`@validate`, `@ground`, `@on`) and the JSON-RPC protocol the pi extension speaks to.
+
+### Browse the events
+
+```bash
+cd ui
+bun install
+bun run dev
+# open http://localhost:3000
+```
+
+The UI has shrunk from eight stacked panels to a focused three-pane layout: **metric chart + event stream** on the left, an **inspector** on the right that opens whatever you click. Two persistent tabs (Hypotheses, Insights) summarise what the agent learned. The renderer is concept-driven — it reads `program.md` to know which concepts exist, so adding a third domain requires zero UI code change.
 
 ---
 
