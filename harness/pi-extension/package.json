@@ -1,0 +1,11 @@
+{
+  "name": "@iar/harness-pi",
+  "version": "0.1.0",
+  "description": "pi.dev extension for the Interpretable AutoResearch harness",
+  "type": "module",
+  "main": "src/index.ts",
+  "keywords": ["pi-package", "interpretable-autoresearch", "iar"],
+  "pi": {
+    "extensions": ["./src/index.ts"]
+  }
+}
