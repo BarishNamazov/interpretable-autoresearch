@@ -15,7 +15,17 @@ describe("end-to-end smoke", () => {
     // Inject the css + a host element.
     doc.body.innerHTML = `<div id="app"></div>`;
 
-    const fixture = JSON.parse(readFileSync(resolve(UI_DIR, "dist", "runs.json"), "utf-8"));
+    // Build the fixture from the live fixtures so the test does not depend
+    // on a stale `dist/runs.json` (which would only exist after `bun run build`).
+    const fixture: Record<string, { events: string; program: string }> = {};
+    for (const domain of ["model-training", "performance-engineering"]) {
+      const eventsPath = resolve(UI_DIR, "..", domain, "events.jsonl");
+      const programPath = resolve(UI_DIR, "..", domain, "program.md");
+      fixture[domain] = {
+        events: readFileSync(eventsPath, "utf-8"),
+        program: readFileSync(programPath, "utf-8"),
+      };
+    }
     // Stub fetch.
     (w as unknown as { fetch: (u: string) => Promise<Response> }).fetch = async (url: string) => {
       if (url === "/api/runs" || url.endsWith("runs.json")) {

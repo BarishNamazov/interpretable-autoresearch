@@ -107,7 +107,16 @@ def _eval_guard(guard: WhereGuard, log: EventLog, trigger: Event | None) -> bool
         if not exp_id:
             return False
         return _experiment_crashed(log, str(exp_id))
-    return True  # free-form / unknown → permissive (matches today's loose semantics)
+    # Unknown guard kind: the reactor today only models a small, fixed set
+    # of guards. Anything else (free-form prose where: clauses) is treated
+    # as permissive so the LLM is not over-constrained — but we log a
+    # warning so the human can see which guards are not being enforced.
+    import logging
+
+    logging.getLogger(__name__).warning(
+        "reactor: unrecognised guard kind %r; allowing by default", guard.kind
+    )
+    return True
 
 
 # ---- pending-then projection ----------------------------------------------
